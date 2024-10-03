@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ремонт оргтехники</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: white;
+            text-align: center;
+        }
+
+        .container {
+            width: 400px;
+            margin: 50px auto;
+            text-align: left;
+        }
+
+        h1 {
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: normal;
+        }
+
+        label {
+            font-size: 18px;
+            color: #555;
+            display: block;
+            margin-top: 20px;
+        }
+
+        input[type="text"], input[type="password"], input[type="tel"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f8ff;
+        }
+
+        .register-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 30px;
+            background-color: #70c5ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .register-btn:hover {
+            background-color: #59a9e0;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #5a8de2;
+        }
+
+        /* Стили для капчи */
+        .captcha-container {
+            margin-top: 20px;
+            display: none; /* Сначала капча скрыта */
+        }
+
+        .captcha-image {
+            font-size: 24px;
+            letter-spacing: 3px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .refresh-captcha {
+            cursor: pointer;
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        .blocked-message {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ремонт оргтехники</h1>
+    <div class="title">Вход:</div>
+
+    <form id="loginForm" th:action="@{login}" method="post" onsubmit="return validateCaptcha()">
+        <label for="username">Логин</label>
+        <input type="text" id="username" name="username" placeholder="Введите логин" required>
+
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" placeholder="Введите пароль" required>
+
+        <!-- Блок капчи -->
+        <div class="captcha-container" id="captchaContainer">
+            <div class="captcha-image" id="captchaImage"></div>
+            <label for="captchaInput">Введите капчу</label>
+            <input type="text" id="captchaInput" placeholder="Введите символы" maxlength="4">
+            <p><span class="refresh-captcha" onclick="generateCaptcha()">Обновить капчу</span></p>
+        </div>
+
+        <button type="submit" class="register-btn">Войти</button>
+
+        <p>Нет аккаунта? <a th:href="@{/registration}">Зарегистрироваться</a></p>
+
+        <!-- Сообщение об ошибке -->
+        <div th:if="${param.error}" class="error-message">Неправильный логин или пароль.</div>
+
+        <!-- Сообщение о блокировке -->
+        <div id="blockedMessage" class="blocked-message" style="display:none;">
+            Вход заблокирован. Попробуйте снова через <span id="timer">3:00</span>.
+        </div>
+    </form>
+</div>
+
+<script>
+    let attempts = parseInt(localStorage.getItem('attempts')) || 0;
+    let captchaCode = '';
+    let isBlocked = false;
+    let blockTimeout = null;
+
+    // Генерация капчи
+    function generateCaptcha() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        captchaCode = '';
+        for (let i = 0; i < 4; i++) {
+            captchaCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('captchaImage').textContent = captchaCode;
+    }
+
+    // Показываем капчу после первой неудачной попытки
+    function showCaptcha() {
+        document.getElementById('captchaContainer').style.display = 'block';
+        generateCaptcha();
+    }
+
+    // Проверка введенной капчи
+    function validateCaptcha() {
+        attempts++;
+        localStorage.setItem('attempts', attempts);
+        if (isBlocked) {
+            return false; // Если пользователь заблокирован, форма не отправляется
+        }
+
+        // После первой попытки показываем капчу
+        if (attempts > 3) {
+            const userCaptcha = document.getElementById('captchaInput').value;
+            if (userCaptcha !== captchaCode) {
+
+                alert('Неверная капча.');
+                if (attempts >= 3) {
+                    blockUser();
+                }
+                return false;
+            }else {
+                return true
+            }
+        }
+
+        if (attempts > 2) {
+            showCaptcha();
+            return false; // Показываем капчу и не отправляем форму
+        }
+
+        return true; // Если капча верна, форма отправляется
+    }
+
+    // Блокировка пользователя на 3 минуты
+    function blockUser() {
+        isBlocked = true;
+        document.getElementById('blockedMessage').style.display = 'block';
+        let timer = 180; // 3 минуты
+        blockTimeout = setInterval(() => {
+            if (timer <= 0) {
+                clearInterval(blockTimeout);
+                unblockUser();
+            } else {
+                const minutes = Math.floor(timer / 60);
+                const seconds = timer % 60;
+                document.getElementById('timer').textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timer--;
+            }
+        }, 1000);
+    }
+
+    // Разблокировка пользователя
+    function unblockUser() {
+        isBlocked = false;
+        attempts = 0;
+        session.removeAttribute("attempts");
+        document.getElementById('blockedMessage').style.display = 'none';
+        document.getElementById('captchaContainer').style.display = 'none';
+        document.getElementById('captchaInput').value = '';
+    }
+</script>
+
+</body>
+</html>
+

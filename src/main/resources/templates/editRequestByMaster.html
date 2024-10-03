@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование заявки</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+        }
+        .button {
+            background-color: #00aaff;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0077cc;
+        }
+        .nav {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .nav button {
+            padding: 10px 20px;
+            background-color: #e0e0e0;
+            border: none;
+            cursor: pointer;
+        }
+        .nav button:hover {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Редактирование заявки</h1>
+
+    <form th:action="@{/master/requests/update}" method="post" th:object="${request}">
+        <input type="hidden" th:field="*{requestId}" /> <!-- Скрытое поле для ID заявки -->
+
+        <label for="status">Статус:</label>
+        <select id="status" th:field="*{status}" required>
+            <option value="Новая" th:selected="${request.status == 'Новая'}">Новая</option>
+            <option value="В работе" th:selected="${request.status == 'В работе'}">В работе</option>
+            <option value="Ожидание запчастей" th:selected="${request.status == 'Ожидание запчастей'}">Ожидание запчастей</option>
+            <option value="Завершена" th:selected="${request.status == 'Завершена'}">Завершена</option>
+        </select>
+
+        <label for="part">Выбрать запчасть:</label>
+        <select id="part" name="partId">
+            <option th:each="part : ${parts}" th:value="${part.id}" th:text="${part.name}"></option>
+        </select>
+
+
+        <label for="completionDate">Дата завершения:</label>
+        <input type="date" id="completionDate" th:field="*{completionDate}" />
+
+        <button type="submit" class="button">Сохранить изменения</button>
+        <div class="buttons">
+            <button type="button" class="button" onclick="window.location.href='@{/operator/lk}'">Отмена</button>
+        </div>
+    </form>
+
+    <!-- Кнопка "Заказать запчасть" -->
+    <form th:action="@{/master/orderPart}" method="post"  th:object="${request}">
+        <input type="hidden" th:field="*{requestId}"  name="requestId"  />
+        <label for="name">Имя:</label>
+        <input  id="name"  name="name"  />
+        <label for="price">Цена:</label>
+        <input type="number"  id="price"  name="price"  />
+
+        <label for="quantity">Количество:</label>
+        <input  type="number"  id="quantity"  name="quantity"  />
+        <button type="submit" class="button">Заказать запчасть</button>
+    </form>
+
+    <!-- Навигационные кнопки -->
+    <div class="nav">
+        <button onclick="window.history.back();">Назад</button>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="submit-button">Выйти из ЛК</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
